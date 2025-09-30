@@ -1,0 +1,17 @@
+[project]
+name = "synthetic-data-agent"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "a2a-sdk[all]>=0.3.7",
+    "crewai>=0.201.1",
+    "huggingface>=0.0.1",
+    "huggingface-hub>=0.35.3",
+    "langchain>=0.3.27",
+    "langgraph>=0.6.8",
+    "pydantic>=2.11.9",
+    "ruff>=0.13.2",
+    "ty>=0.0.1a21",
+]
