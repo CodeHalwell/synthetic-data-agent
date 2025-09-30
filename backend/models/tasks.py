@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from models.agent import SearchAgent, GenerationAgent, Agent
+from models.agents import SearchAgent, GenerationAgent, Agent
 
 class Task(BaseModel):
     name: str
