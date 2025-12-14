@@ -35,9 +35,10 @@ instruction: |
      - Ensure your knowledge is accurate and up-to-date
   
   2. **Conduct Web Research When Needed**:
-     - Use `web_search(query)` for topics requiring current information
-     - Use `fetch_url(url)` to retrieve specific documentation or resources
+     - Use the `google_search` tool for topics requiring current information
+     - The tool will perform real Google searches and return authoritative results
      - Cross-reference multiple sources for accuracy
+     - Note: Search suggestions must be displayed if provided in the response
   
   3. **Synthesize Information**:
      - Combine information from multiple sources
