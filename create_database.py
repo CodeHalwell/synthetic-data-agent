@@ -19,7 +19,7 @@ from schema.synthetic_data import Base
 # Database configuration
 db_dir = Path(__file__).parent / "db"
 db_dir.mkdir(exist_ok=True)
-DATABASE_URL = f"sqlite:///{db_dir / 'synthetic_data.db'}"
+DATABASE_URL = f"sqlite:///{(db_dir / 'synthetic_data.db').as_posix()}"
 
 def create_database():
     """Create all tables in the database."""

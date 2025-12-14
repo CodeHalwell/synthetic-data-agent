@@ -16,6 +16,6 @@ root_agent = LlmAgent(
     name=config["name"],
     description=config["description"],
     instruction=config["instruction"],
-    model=Gemini(model=config["model"], retry_config=retry_config),
+    model=Gemini(model=config["model"], retry_config=retry_config()),
     output_schema=Questions,
 )

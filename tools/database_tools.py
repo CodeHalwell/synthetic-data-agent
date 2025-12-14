@@ -20,7 +20,7 @@ from sqlalchemy.orm import sessionmaker, Session
 # Database files are stored in the db directory
 db_dir = Path(__file__).parent.parent / "db"
 db_dir.mkdir(exist_ok=True)  # Ensure db directory exists
-DATABASE_URL = f"sqlite:///{db_dir / 'synthetic_data.db'}"  # Default to SQLite, can be changed
+DATABASE_URL = f"sqlite:///{(db_dir / 'synthetic_data.db').as_posix()}"  # Default to SQLite, can be changed
 
 # Create engine and session factory
 engine = create_engine(DATABASE_URL, echo=False)
