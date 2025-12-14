@@ -444,6 +444,29 @@ class DatabaseTools(BaseTool):
             session.rollback()
             return {"status": "error", "error": str(e)}
     
+    def print_all_tables(
+        self,
+        limit_per_table: Optional[int] = None,
+        show_all_columns: bool = False
+    ) -> Dict[str, int]:
+        """
+        Print contents of all database tables.
+        
+        This is a convenience method that uses the db_inspector utility.
+        
+        Args:
+            limit_per_table: Optional limit on records per table
+            show_all_columns: If True, show all columns including empty ones
+            
+        Returns:
+            Dictionary mapping table names to record counts
+        """
+        from utils.db_inspector import print_all_tables
+        return print_all_tables(
+            limit_per_table=limit_per_table,
+            show_all_columns=show_all_columns
+        )
+    
     def get_questions_by_stage(
         self,
         pipeline_stage: str,
