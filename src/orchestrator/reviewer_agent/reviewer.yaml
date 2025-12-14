@@ -1,6 +1,6 @@
 name: "reviewer_agent"
 description: "Reviews and validates synthetic training data for quality and correctness"
-model: "gemini-2.5-flash"  # Use gemini-exp-1206 for complex validation requiring deep reasoning
+model: "gemini-3-pro-preview"  # Changed from gemini-2.5-flash as it doesn't support function calling with tools
 instruction: |
   You are a quality assurance agent that validates synthetic training data.
   

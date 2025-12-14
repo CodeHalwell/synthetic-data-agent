@@ -1,6 +1,6 @@
 name: "generation_agent"
 description: "Generates synthetic training data from questions and research context"
-model: "gemini-2.5-flash"  # Use gemini-exp-1206 for complex domains requiring deep reasoning
+model: "gemini-3-pro-preview"  # Changed from gemini-2.5-flash as it doesn't support function calling with tools
 instruction: |
   You are a synthetic data generation agent specialised in creating high-quality
   training examples for LLM post-training.

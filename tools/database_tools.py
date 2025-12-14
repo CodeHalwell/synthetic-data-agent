@@ -521,3 +521,61 @@ class DatabaseTools(BaseTool):
             ]
         except Exception as e:
             return [{"error": str(e)}]
+    
+    def clear_all_tables(self, confirm: bool = True) -> Dict[str, int]:
+        """
+        Clear all data from all database tables.
+        
+        WARNING: This will permanently delete all data from all tables!
+        
+        Args:
+            confirm: If True, proceed with deletion. Defaults to True for programmatic use.
+            
+        Returns:
+            Dictionary mapping table names to number of records deleted
+        """
+        if not confirm:
+            return {}
+        
+        session = self._get_session()
+        results = {}
+        
+        try:
+            # Import all table classes
+            from schema.synthetic_data import (
+                SyntheticDataSFT,
+                SyntheticDataDPO,
+                SyntheticDataPPO,
+                SyntheticDataGRPO,
+                SyntheticDataRLHF,
+                SyntheticDataKTO,
+                SyntheticDataORPO,
+                SyntheticDataChat,
+                SyntheticDataQA,
+            )
+            
+            all_tables = {
+                "questions": QUESTIONS_TABLE,
+                "synthetic_data_sft": SyntheticDataSFT,
+                "synthetic_data_dpo": SyntheticDataDPO,
+                "synthetic_data_ppo": SyntheticDataPPO,
+                "synthetic_data_grpo": SyntheticDataGRPO,
+                "synthetic_data_rlhf": SyntheticDataRLHF,
+                "synthetic_data_kto": SyntheticDataKTO,
+                "synthetic_data_orpo": SyntheticDataORPO,
+                "synthetic_data_chat": SyntheticDataChat,
+                "synthetic_data_qa": SyntheticDataQA,
+            }
+            
+            for table_name, table_class in all_tables.items():
+                count = session.query(table_class).count()
+                if count > 0:
+                    session.query(table_class).delete()
+                results[table_name] = count
+            
+            session.commit()
+            return results
+            
+        except Exception as e:
+            session.rollback()
+            return {"error": str(e)}
