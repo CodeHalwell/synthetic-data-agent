@@ -249,6 +249,43 @@ class DatabaseTools(BaseTool):
                 "error": str(e)
             }
     
+    def get_question_by_id(self, question_id: int) -> Optional[Dict[str, Any]]:
+        """
+        Get a question by its ID.
+        
+        Args:
+            question_id: The ID of the question to retrieve
+            
+        Returns:
+            Dictionary with question data, or None if not found
+        """
+        session = self._get_session()
+        
+        try:
+            question = session.query(QUESTIONS_TABLE).filter(
+                QUESTIONS_TABLE.id == question_id
+            ).first()
+            
+            if not question:
+                return None
+            
+            return {
+                "id": question.id,
+                "question": question.question,
+                "topic": question.topic,
+                "sub_topic": question.sub_topic,
+                "status": question.status,
+                "pipeline_stage": question.pipeline_stage,
+                "training_type": question.training_type,
+                "ground_truth_context": question.ground_truth_context,
+                "synthesized_context": question.synthesized_context,
+                "context_sources": question.context_sources,
+                "context_quality_score": question.context_quality_score,
+                "research_completed_at": question.research_completed_at.isoformat() if question.research_completed_at else None
+            }
+        except Exception as e:
+            return {"error": str(e)}
+    
     def get_questions_count(
         self,
         topic: Optional[str] = None,
