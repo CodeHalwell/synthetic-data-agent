@@ -18,7 +18,7 @@ from google.adk.models.google_llm import Gemini
 
 from tools.database_tools import DatabaseTools
 from .review_db_sub_agent import root_agent as review_db_sub_agent
-from ..code_execution_agent import root_agent as code_execution_agent
+from .code_execution_sub_agent import root_agent as code_execution_agent
 
 # Initialize tools
 # DatabaseTools for read-only access (querying generated data, etc.)

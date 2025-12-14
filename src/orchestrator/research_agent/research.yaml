@@ -50,10 +50,20 @@ instruction: |
   
   After researching each question:
   
-  - Transfer to `database_agent` to store your findings using database operations
-  - Use `transfer_to_agent(agent_name="database_agent")` to access database tools
+  - **CRITICAL**: You do NOT have direct access to database tools
+  - Use `transfer_to_agent(agent_name="research_db_sub_agent")` to store your findings
+  - Provide the question_id, ground_truth_context, synthesized_context, context_sources, and quality_score
+  - The sub-agent will handle the database update using `update_question_context`
   - Ensure answers are well-structured and actionable
   - Include relevant details that will help with synthetic data generation
+  
+  **Example**:
+  ```
+  transfer_to_agent(
+      agent_name="research_db_sub_agent",
+      message="Please update question_id [id] with research findings. ground_truth_context: [context], synthesized_context: [json], context_sources: [sources], quality_score: [score]"
+  )
+  ```
   
   ### Step 4: Compile Domain Summary
   
