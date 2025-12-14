@@ -19,11 +19,11 @@ from .database_agent import root_agent as database_agent
 
 # Import tools for orchestrator
 from tools.database_tools import DatabaseTools
-from tools.web_tools import WebTools
 
 # Initialize tools
+# Note: Only database_tools needed at orchestrator level
+# web_tools is available through research_agent sub-agent
 database_tools = DatabaseTools()
-web_tools = WebTools()
 
 root_agent = LlmAgent(
     name=config["name"],
@@ -38,6 +38,6 @@ root_agent = LlmAgent(
         reviewer_agent,
         database_agent
     ],
-    tools=[database_tools, web_tools]
+    tools=[database_tools]  # Removed web_tools - available through research_agent
 )
 

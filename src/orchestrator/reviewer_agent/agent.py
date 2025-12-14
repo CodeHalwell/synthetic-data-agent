@@ -17,11 +17,10 @@ from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
 from google.adk.code_executors import BuiltInCodeExecutor
 
-from tools.web_tools import WebTools
 from tools.database_tools import DatabaseTools
 
 # Initialize tools
-web_tools = WebTools()
+# Note: Reviewer agent doesn't need web_tools - it reviews data, doesn't research
 database_tools = DatabaseTools()
 code_executor = BuiltInCodeExecutor()
 
@@ -30,6 +29,6 @@ root_agent = LlmAgent(
     description=config["description"],
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
-    tools=[web_tools, database_tools],
+    tools=[database_tools],  # Removed web_tools - reviewer doesn't need web search
     code_executor=code_executor,
 )
