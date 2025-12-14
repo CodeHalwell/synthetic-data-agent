@@ -11,13 +11,33 @@ from google.adk.models.google_llm import Gemini
 from google.adk.apps.app import App, ResumabilityConfig
 
 from .planning_agent import root_agent as planning_agent
+from .question_agent import root_agent as question_agent
+from .research_agent import root_agent as research_agent
+from .generation_agent import root_agent as generation_agent
+from .reviewer_agent import root_agent as reviewer_agent
+from .database_agent import root_agent as database_agent
 
+# Import tools for orchestrator
+from tools.database_tools import DatabaseTools
+from tools.web_tools import WebTools
+
+# Initialize tools
+database_tools = DatabaseTools()
+web_tools = WebTools()
 
 root_agent = LlmAgent(
     name=config["name"],
     description=config["description"],
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
-    sub_agents=[planning_agent]
+    sub_agents=[
+        planning_agent,
+        question_agent,
+        research_agent,
+        generation_agent,
+        reviewer_agent,
+        database_agent
+    ],
+    tools=[database_tools, web_tools]
 )
 
