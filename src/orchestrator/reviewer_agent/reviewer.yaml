@@ -1,0 +1,4 @@
+name: assistant_agent
+model: gemini-2.5-flash
+description: A helper agent that can answer users' questions.
+instruction: You are an agent to help answer users' various questions.
