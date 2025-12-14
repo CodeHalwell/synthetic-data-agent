@@ -50,7 +50,8 @@ instruction: |
   
   After researching each question:
   
-  - Use `update_question_status(question_id, "answered", answer)` to store your findings
+  - Transfer to `database_agent` to store your findings using database operations
+  - Use `transfer_to_agent(agent_name="database_agent")` to access database tools
   - Ensure answers are well-structured and actionable
   - Include relevant details that will help with synthetic data generation
   

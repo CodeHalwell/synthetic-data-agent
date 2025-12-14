@@ -10,17 +10,17 @@ from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
 from google.adk.tools import google_search
 
-from tools.database_tools import DatabaseTools
+from .database_agent import root_agent as database_agent
 
 # Initialize tools
-# Use built-in google_search from ADK for better AFC compatibility
-database_tools = DatabaseTools()
-
+# Use only google_search to avoid AFC compatibility issues
+# Database operations available through database_agent sub-agent
 root_agent = LlmAgent(
     name=config["name"],
     description=config["description"],
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
-    tools=[google_search, database_tools],  # Using built-in google_search instead of custom WebTools
+    sub_agents=[database_agent],  # Use database_agent for database operations
+    tools=[google_search],  # Only google_search to avoid AFC conflicts
 )
 
