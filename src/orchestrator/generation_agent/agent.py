@@ -15,19 +15,23 @@ config = load_config(Path(__file__).parent / "generator.yaml")
 
 from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
-from google.adk.code_executors import BuiltInCodeExecutor
 
 from tools.database_tools import DatabaseTools
+from .generation_db_sub_agent import root_agent as generation_db_sub_agent
+from ..code_execution_agent import root_agent as code_execution_agent
 
 # Initialize tools
+# DatabaseTools for read-only access (querying questions, etc.)
 database_tools = DatabaseTools()
-code_executor = BuiltInCodeExecutor()
 
+# Sub-agents for writes and code execution
+# generation_db_sub_agent: Writes generated data to database
+# code_execution_agent: Executes code for verification (uses BuiltInCodeExecutor)
 root_agent = LlmAgent(
     name=config["name"],
     description=config["description"],
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
-    tools=[database_tools],
-    code_executor=code_executor,
+    tools=[database_tools],  # Custom tool (read-only database access)
+    sub_agents=[generation_db_sub_agent, code_execution_agent],  # Sub-agents for writes and code execution
 )

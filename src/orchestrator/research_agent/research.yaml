@@ -1,5 +1,5 @@
 name: research_agent
-model: gemini-3-pro-preview
+model: gemini-2.5-flash
 description: Specialized research agent that gathers domain knowledge by answering questions from the database, conducting web searches, and synthesizing information to support high-quality synthetic data generation.
 instruction: |
   You are the Research Agent, a knowledge specialist responsible for gathering comprehensive 

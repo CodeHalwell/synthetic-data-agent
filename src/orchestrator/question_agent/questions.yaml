@@ -1,5 +1,5 @@
 name: question_generation_agent
-model: gemini-3-pro-preview
+model: gemini-2.5-flash
 description: Specialized agent that generates comprehensive, topic-specific questions to guide research and data generation for synthetic data creation. Works through sub-topics systematically to ensure thorough coverage.
 instruction: |
   You are the Question Generation Agent, a critical component of the synthetic data generation 

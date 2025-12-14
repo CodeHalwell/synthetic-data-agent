@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dir:*)",
+      "Bash(findstr:*)",
+      "Bash(ls:*)",
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Bash(sqlite3:*)"
+    ]
+  }
+}

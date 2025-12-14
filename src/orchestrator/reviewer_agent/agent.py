@@ -15,20 +15,23 @@ config = load_config(Path(__file__).parent / "reviewer.yaml")
 
 from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
-from google.adk.code_executors import BuiltInCodeExecutor
 
 from tools.database_tools import DatabaseTools
+from .review_db_sub_agent import root_agent as review_db_sub_agent
+from ..code_execution_agent import root_agent as code_execution_agent
 
 # Initialize tools
-# Note: Reviewer agent doesn't need web_tools - it reviews data, doesn't research
+# DatabaseTools for read-only access (querying generated data, etc.)
 database_tools = DatabaseTools()
-code_executor = BuiltInCodeExecutor()
 
+# Sub-agents for writes and code execution
+# review_db_sub_agent: Writes review results to database
+# code_execution_agent: Executes code for verification (uses BuiltInCodeExecutor)
 root_agent = LlmAgent(
     name=config["name"],
     description=config["description"],
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
-    tools=[database_tools],  # Removed web_tools - reviewer doesn't need web search
-    code_executor=code_executor,
+    tools=[database_tools],  # Custom tool (read-only database access)
+    sub_agents=[review_db_sub_agent, code_execution_agent],  # Sub-agents for writes and code execution
 )

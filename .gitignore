@@ -1,2 +1,4 @@
 .venv
 .env
+db/
+db\synthetic_data.db

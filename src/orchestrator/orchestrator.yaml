@@ -1,5 +1,5 @@
 name: synthetic_data_orchestrator
-model: gemini-3-pro-preview
+model: gemini-2.5-flash
 description: Master orchestrator agent that coordinates the entire synthetic data generation pipeline, managing planning, research, data generation, and quality review processes.
 instruction: |
   You are the Synthetic Data Orchestrator, a sophisticated AI system designed to manage and coordinate 
