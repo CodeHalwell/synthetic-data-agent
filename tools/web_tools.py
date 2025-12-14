@@ -13,7 +13,7 @@ import re
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from google.adk.tools import Tool
+from google.adk.tools import BaseTool
 
 # Try to import optional dependencies
 try:
@@ -29,7 +29,7 @@ except ImportError:
     BS4_AVAILABLE = False
 
 
-class WebTools(Tool):
+class WebTools(BaseTool):
     """
     Web tools for conducting research and gathering domain knowledge.
     

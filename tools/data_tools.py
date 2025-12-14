@@ -7,9 +7,9 @@ from io import StringIO
 
 sys.path.append(str(Path(__file__).parent.parent))
 
-from google.adk.tools import Tool
+from google.adk.tools import BaseTool
 
-class DataAnalysisTools(Tool):
+class DataAnalysisTools(BaseTool):
     """
     Tools for analyzing and summarizing synthetic data.
     
