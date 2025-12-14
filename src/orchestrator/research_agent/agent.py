@@ -8,12 +8,12 @@ config = load_config(Path(__file__).parent / "research.yaml")
 
 from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
+from google.adk.tools import google_search
 
-from tools.web_tools import WebTools
 from tools.database_tools import DatabaseTools
 
 # Initialize tools
-web_tools = WebTools()
+# Use built-in google_search from ADK for better AFC compatibility
 database_tools = DatabaseTools()
 
 root_agent = LlmAgent(
@@ -21,6 +21,6 @@ root_agent = LlmAgent(
     description=config["description"],
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
-    tools=[web_tools, database_tools],
+    tools=[google_search, database_tools],  # Using built-in google_search instead of custom WebTools
 )
 
