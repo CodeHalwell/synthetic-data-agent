@@ -1,7 +1,7 @@
 # Revised Architecture: Multi-Agent Database Sub-Agents
 
-**Date**: December 14, 2025  
-**Status**: Design Phase  
+**Date**: December 14, 2025
+**Status**: Design Phase
 **Based on**: User requirements for better separation of concerns
 
 ---
@@ -111,7 +111,7 @@ Stage 5: Final Storage
 
 ### Question Agent
 
-**Tools**: None (pure generation)  
+**Tools**: None (pure generation)
 **Sub-Agents**: `question_db_sub_agent`
 
 **Database Sub-Agent**:
@@ -126,7 +126,7 @@ Stage 5: Final Storage
 
 ### Research Agent
 
-**Tools**: `google_search` (ADK built-in)  
+**Tools**: `google_search` (ADK built-in)
 **Sub-Agents**: `research_db_sub_agent`
 
 **Database Sub-Agent**:
@@ -148,7 +148,7 @@ Stage 5: Final Storage
 async def research_question(question, topic, sub_topic, research_agent):
     # Invoke research agent with google_search
     search_query = f"{question} {topic} {sub_topic}"
-    
+
     # Agent uses google_search tool internally
     result = await research_agent.invoke({
         "question": question,
@@ -157,7 +157,7 @@ async def research_question(question, topic, sub_topic, research_agent):
         "action": "research",
         "search_query": search_query
     })
-    
+
     # Extract search results from agent response
     # Agent returns structured research data
     return {
@@ -169,8 +169,8 @@ async def research_question(question, topic, sub_topic, research_agent):
 
 ### Generation Agent
 
-**Tools**: `DatabaseTools` (custom tool - read-only access)  
-**Sub-Agents**: 
+**Tools**: `DatabaseTools` (custom tool - read-only access)
+**Sub-Agents**:
 - `generation_db_sub_agent` (writes generated data)
 - `code_execution_agent` (if code execution needed)
 
@@ -187,7 +187,7 @@ async def research_question(question, topic, sub_topic, research_agent):
 
 ### Reviewer Agent
 
-**Tools**: `DatabaseTools` (custom tool - read-only access)  
+**Tools**: `DatabaseTools` (custom tool - read-only access)
 **Sub-Agents**: `review_db_sub_agent`
 
 **Database Sub-Agent**:
@@ -203,7 +203,7 @@ async def research_question(question, topic, sub_topic, research_agent):
 
 ### Database Manager Agent
 
-**Tools**: `DatabaseTools` (full access)  
+**Tools**: `DatabaseTools` (full access)
 **Sub-Agents**: None
 
 **Responsibilities**:
@@ -245,10 +245,10 @@ root_agent = LlmAgent(
     instruction=f"""
     You are the database sub-agent for {agent_name}.
     Your role is to write {agent_name} data to the database.
-    
+
     Available operations:
     - {specific_write_operations}
-    
+
     Always validate data before writing.
     Return success/error status for each operation.
     """,
@@ -286,7 +286,7 @@ root_agent = LlmAgent(
 - Research agent: `sub_agents=[database_agent]` (LLM for CRUD) ❌
 
 **After**:
-- Generation agent: 
+- Generation agent:
   - `tools=[database_tools]` (read-only)
   - `sub_agents=[generation_db_sub_agent, code_execution_agent]` ✅
 - Research agent:
@@ -324,16 +324,16 @@ async def generate_synthetic_data_pipeline(
     question_ids = await stage_1_generate_questions(
         questions, topic, sub_topic, training_type
     )
-    
+
     # Stage 2: Research all questions (parallel)
     await stage_2_research_questions(question_ids, topic, sub_topic)
-    
+
     # Stage 3: Generate all training data (parallel)
     await stage_3_generate_data(question_ids, training_type)
-    
+
     # Stage 4: Review all data (parallel)
     await stage_4_review_data(question_ids, training_type)
-    
+
     # Stage 5: Final storage (database manager)
     await stage_5_final_storage(question_ids, training_type)
 ```
@@ -345,7 +345,7 @@ async def stage_1_generate_questions(questions, topic, sub_topic, training_type)
     """Generate questions and store in database."""
     question_agent = get_question_agent()
     question_db_agent = get_question_db_sub_agent()
-    
+
     # Generate questions (if needed, or use provided)
     if not questions:
         questions = await question_agent.invoke({
@@ -354,7 +354,7 @@ async def stage_1_generate_questions(questions, topic, sub_topic, training_type)
             "training_type": training_type,
             "action": "generate_questions"
         })
-    
+
     # Store via sub-agent
     result = await question_db_agent.invoke({
         "action": "add_questions",
@@ -363,7 +363,7 @@ async def stage_1_generate_questions(questions, topic, sub_topic, training_type)
         "sub_topic": sub_topic,
         "training_type": training_type
     })
-    
+
     return result["question_ids"]
 ```
 
@@ -374,24 +374,24 @@ async def stage_2_research_questions(question_ids, topic, sub_topic):
     """Research all questions in parallel."""
     research_agent = get_research_agent()
     research_db_agent = get_research_db_sub_agent()
-    
+
     # Parallel research
     research_tasks = []
     for question_id in question_ids:
         task = research_and_store(
-            question_id, topic, sub_topic, 
+            question_id, topic, sub_topic,
             research_agent, research_db_agent
         )
         research_tasks.append(task)
-    
+
     await asyncio.gather(*research_tasks, return_exceptions=True)
 
-async def research_and_store(question_id, topic, sub_topic, 
+async def research_and_store(question_id, topic, sub_topic,
                              research_agent, research_db_agent):
     """Research single question and store results."""
     # Get question
     question_data = database_tools.get_question_by_id(question_id)
-    
+
     # Research via agent (uses google_search)
     research_result = await research_agent.invoke({
         "question": question_data["question"],
@@ -399,7 +399,7 @@ async def research_and_store(question_id, topic, sub_topic,
         "sub_topic": sub_topic,
         "action": "research"
     })
-    
+
     # Store via sub-agent
     await research_db_agent.invoke({
         "action": "update_research",
@@ -417,10 +417,10 @@ async def stage_3_generate_data(question_ids, training_type):
     """Generate training data for all questions."""
     generation_agent = get_generation_agent()
     generation_db_agent = get_generation_db_sub_agent()
-    
+
     # Get researched questions
     researched_questions = database_tools.get_questions_by_stage("researched")
-    
+
     # Parallel generation
     generation_tasks = []
     for question_data in researched_questions:
@@ -429,7 +429,7 @@ async def stage_3_generate_data(question_ids, training_type):
             generation_agent, generation_db_agent
         )
         generation_tasks.append(task)
-    
+
     await asyncio.gather(*generation_tasks, return_exceptions=True)
 ```
 
@@ -440,10 +440,10 @@ async def stage_4_review_data(question_ids, training_type):
     """Review all generated data."""
     reviewer_agent = get_reviewer_agent()
     review_db_agent = get_review_db_sub_agent()
-    
+
     # Get generated data
     generated_data = database_tools.get_generated_data_by_stage("generated")
-    
+
     # Parallel review
     review_tasks = []
     for data in generated_data:
@@ -452,7 +452,7 @@ async def stage_4_review_data(question_ids, training_type):
             reviewer_agent, review_db_agent
         )
         review_tasks.append(task)
-    
+
     await asyncio.gather(*review_tasks, return_exceptions=True)
 ```
 
@@ -462,10 +462,10 @@ async def stage_4_review_data(question_ids, training_type):
 async def stage_5_final_storage(question_ids, training_type):
     """Move approved data to final tables."""
     db_manager_agent = get_database_manager_agent()
-    
+
     # Get approved data
     approved_data = database_tools.get_approved_data()
-    
+
     # Validate and move to final tables
     await db_manager_agent.invoke({
         "action": "finalize_storage",
@@ -529,6 +529,6 @@ async def stage_5_final_storage(question_ids, training_type):
 
 ---
 
-**Document Status**: Design Complete  
-**Ready for Implementation**: Yes  
+**Document Status**: Design Complete
+**Ready for Implementation**: Yes
 **Estimated Implementation Time**: 2-3 weeks

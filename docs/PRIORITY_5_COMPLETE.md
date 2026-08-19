@@ -195,7 +195,7 @@ Orchestrator Agent
     ├── Generation Agent (data creation) ✅
     ├── Reviewer Agent (quality validation) ✅
     └── Database Agent (schema management)
-    
+
 Tools:
     ├── DatabaseTools (CRUD operations) ✅
     └── WebTools (web research) ✅

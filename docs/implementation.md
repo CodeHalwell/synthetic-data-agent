@@ -116,7 +116,7 @@ from sqlalchemy import Column, Integer, String, Text, DateTime, Float, JSON
 
 class Questions(Base):
     __tablename__ = "questions"
-    
+
     # Existing fields
     id = Column(Integer, primary_key=True)
     question = Column(Text, nullable=False)
@@ -124,37 +124,37 @@ class Questions(Base):
     sub_topic = Column(String(255), nullable=False)
     status = Column(String(50), default="pending")
     training_type = Column(String(50), nullable=True)
-    
+
     # NEW: Artifact fields (structured JSON)
     task_spec = Column(JSON, nullable=True)
     """Task specification: training type, output constraints, format requirements"""
-    
+
     evidence = Column(JSON, nullable=True)
     """Evidence pack: list of items with provenance"""
-    
+
     reference_solution = Column(JSON, nullable=True)
     """Gold answer with acceptance criteria"""
-    
+
     review = Column(JSON, nullable=True)
     """Review results with scores and decisions"""
-    
+
     # NEW: Context fields
     ground_truth_context = Column(Text, nullable=True)
     """Raw, word-for-word text from authoritative sources"""
-    
+
     synthesized_context = Column(Text, nullable=True)
     """LLM-cleaned and structured version"""
-    
+
     context_sources = Column(JSON, nullable=True)
     """JSON array: [{"url": "...", "title": "...", "license": "...", "fetched_at": "..."}]"""
-    
+
     context_quality_score = Column(Float, nullable=True)
     """Quality score of research (0-1)"""
-    
+
     # NEW: Pipeline stage tracking
     pipeline_stage = Column(String(50), default="pending")
     """Granular stage: pending → researching → ready_for_generation → generated → reviewed"""
-    
+
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, onupdate=datetime.utcnow)
@@ -180,27 +180,27 @@ def update_question_context(
 ) -> Dict[str, Any]:
     """
     Update a question with research context.
-    
+
     Args:
         question_id: ID of the question
         ground_truth_context: Raw text from sources
         synthesized_context: LLM-structured context
         context_sources: List of source metadata
         quality_score: Optional quality score (0-1)
-        
+
     Returns:
         Update status dict
     """
     session = self._get_session()
-    
+
     try:
         question = session.query(QUESTIONS_TABLE).filter(
             QUESTIONS_TABLE.id == question_id
         ).first()
-        
+
         if not question:
             return {"status": "error", "error": f"Question {question_id} not found"}
-        
+
         question.ground_truth_context = ground_truth_context
         question.synthesized_context = synthesized_context
         question.context_sources = context_sources
@@ -208,9 +208,9 @@ def update_question_context(
         question.status = "researched"
         question.pipeline_stage = "ready_for_generation"
         question.research_completed_at = datetime.utcnow()
-        
+
         session.commit()
-        
+
         return {
             "status": "success",
             "question_id": question_id,
@@ -232,7 +232,7 @@ def update_question_artifacts(
 ) -> Dict[str, Any]:
     """
     Update structured artifacts for a question.
-    
+
     Args:
         question_id: ID of the question
         task_spec: Task specification dict
@@ -240,20 +240,20 @@ def update_question_artifacts(
         reference_solution: Reference solution dict
         review: Review results dict
         pipeline_stage: New pipeline stage
-        
+
     Returns:
         Update status dict
     """
     session = self._get_session()
-    
+
     try:
         question = session.query(QUESTIONS_TABLE).filter(
             QUESTIONS_TABLE.id == question_id
         ).first()
-        
+
         if not question:
             return {"status": "error", "error": f"Question {question_id} not found"}
-        
+
         if task_spec is not None:
             question.task_spec = task_spec
         if evidence is not None:
@@ -264,10 +264,10 @@ def update_question_artifacts(
             question.review = review
         if pipeline_stage is not None:
             question.pipeline_stage = pipeline_stage
-        
+
         question.updated_at = datetime.utcnow()
         session.commit()
-        
+
         return {"status": "success", "question_id": question_id}
     except Exception as e:
         session.rollback()
@@ -317,28 +317,28 @@ description: "Conducts research on questions and gathers authoritative context"
 model: "gemini-2.5-flash"
 instruction: |
   You are a research agent specialised in gathering high-quality, authoritative information.
-  
+
   Your task is to:
   1. Take a question and search for authoritative sources
   2. Extract word-for-word ground truth text from credible sources
   3. Synthesise the ground truth into a clean, structured context
   4. Track source URLs, licenses, and provenance
-  
+
   For ground truth:
   - Use exact quotes and passages from sources
   - Preserve technical terminology
   - Include specific examples and details
   - Track all source URLs and licenses
-  
+
   For synthesised context:
   - Organise information logically
   - Extract key concepts, definitions, and examples
   - Create a structured summary suitable for training data generation
   - Remove fluff and redundancy while keeping accuracy
-  
+
   Always verify information from multiple sources when possible.
   Prioritise: peer-reviewed papers, official documentation, educational sources.
-  
+
   IMPORTANT: Track licenses (CC-BY, CC-BY-SA, public domain, etc.) for all sources.
 ```
 
@@ -385,41 +385,41 @@ async def research_question(
 ) -> Dict[str, Any]:
     """
     Conduct research for a single question.
-    
+
     Process:
     1. Search for authoritative sources
     2. Fetch and extract content
     3. Synthesise context with LLM
     4. Store results in database
-    
+
     Args:
         question_id: Database ID of the question
         question_text: The question to research
         topic: Main topic
         sub_topic: Specific sub-topic
-        
+
     Returns:
         Research result status
     """
     # Step 1: Search for sources
     search_query = f"{topic} {sub_topic} {question_text}"
     search_results = web_tools.web_search(search_query, num_results=5)
-    
+
     # Step 2: Fetch content from sources
     ground_truth_parts = []
     sources = []
-    
+
     for result in search_results.get("results", [])[:3]:
         source_url = result.get("url")
         if not source_url:
             continue
-            
+
         fetch_result = web_tools.fetch_url(source_url, extract_text=True)
-        
+
         if fetch_result.get("status") == "success":
             content = fetch_result.get("content", "")
             ground_truth_parts.append(content[:2000])  # Limit per source
-            
+
             sources.append({
                 "url": source_url,
                 "title": fetch_result.get("title", "Unknown"),
@@ -427,10 +427,10 @@ async def research_question(
                 "license": "unknown",  # Would detect from page
                 "snippet_length": len(content)
             })
-    
+
     # Combine ground truth
     ground_truth_context = "\n\n---\n\n".join(ground_truth_parts)
-    
+
     # Step 3: Synthesise context (would use LLM in production)
     synthesized_context = {
         "question": question_text,
@@ -443,7 +443,7 @@ async def research_question(
         "constraints": [],
         "source_count": len(sources)
     }
-    
+
     # Step 4: Store in database
     result = database_tools.update_question_context(
         question_id=question_id,
@@ -452,7 +452,7 @@ async def research_question(
         context_sources=sources,
         quality_score=0.8 if sources else 0.3
     )
-    
+
     return {
         "status": "success" if result.get("status") == "success" else "error",
         "question_id": question_id,
@@ -467,16 +467,16 @@ async def research_batch(
 ) -> Dict[str, Any]:
     """
     Research multiple questions in batches.
-    
+
     Args:
         questions: List of question dicts with id, question, topic, sub_topic
         batch_size: Number to process at once
-        
+
     Returns:
         Batch results summary
     """
     results = []
-    
+
     for i, q in enumerate(questions[:batch_size]):
         result = await research_question(
             question_id=q["id"],
@@ -486,9 +486,9 @@ async def research_batch(
         )
         results.append(result)
         print(f"  Researched {i+1}/{min(len(questions), batch_size)}")
-    
+
     successful = sum(1 for r in results if r["status"] == "success")
-    
+
     return {
         "total": len(results),
         "successful": successful,
@@ -518,7 +518,7 @@ model: "gemini-2.5-flash"  # Use gemini-3-pro-preview for complex domains
 instruction: |
   You are a synthetic data generation agent specialised in creating high-quality
   training examples for LLM post-training.
-  
+
   Your capabilities:
   - Generate instruction-response pairs for SFT
   - Create preference pairs for DPO (chosen vs rejected responses)
@@ -526,7 +526,7 @@ instruction: |
   - Create reward-based data for PPO
   - Generate comparison data for RLHF
   - Create binary feedback data for KTO
-  
+
   Quality standards:
   - Factually accurate based on provided context
   - Natural, diverse language (avoid repetitive patterns)
@@ -534,17 +534,17 @@ instruction: |
   - Well-structured and complete
   - Code examples must be functional and tested
   - Mathematical solutions must be verified
-  
+
   When generating code:
   - Always test with code executor before submitting
   - Handle edge cases appropriately
   - Include comments for clarity
-  
+
   When generating reasoning:
   - Show clear step-by-step logic
   - Explain intermediate steps
   - Connect reasoning to final answer explicitly
-  
+
   Use the provided context and tools to ensure accuracy.
 ```
 
@@ -610,12 +610,12 @@ async def generate_sft_data(
 ) -> Dict[str, Any]:
     """
     Generate SFT (Supervised Fine-Tuning) data.
-    
+
     Returns:
         Dict with: instruction, response, system_prompt
     """
     context = json.loads(synthesized_context) if isinstance(synthesized_context, str) else synthesized_context
-    
+
     return {
         "system_prompt": f"You are an expert in {topic}, specifically {sub_topic}.",
         "instruction": question,
@@ -639,14 +639,14 @@ async def generate_grpo_data(
 ) -> Dict[str, Any]:
     """
     Generate GRPO (Group Relative Policy Optimisation) data.
-    
+
     Includes reasoning chain, verification code, and correctness flag.
-    
+
     Returns:
         Dict with: prompt, reasoning, code, predicted_answer, is_correct
     """
     context = json.loads(synthesized_context) if isinstance(synthesized_context, str) else synthesized_context
-    
+
     # Generate reasoning chain
     key_concepts = context.get("key_concepts", [])
     reasoning = f"""
@@ -664,7 +664,7 @@ Using the context and reasoning above, the answer is derived.
 Step 4: Verify the solution
 Cross-checking against the source material confirms the answer.
 """
-    
+
     # Generate verification code (for code/math questions)
     code = f'''# Verification code for: {question}
 # Topic: {topic}/{sub_topic}
@@ -679,10 +679,10 @@ if __name__ == "__main__":
     is_correct = verify_answer()
     print(f"Verification result: {{is_correct}}")
 '''
-    
+
     predicted_answer = "Answer derived from reasoning chain"
     is_correct = True  # Would be determined by code execution
-    
+
     return {
         "prompt": question,
         "group_id": f"{topic}_{sub_topic}_group",
@@ -709,28 +709,28 @@ async def generate_dpo_data(
 ) -> Dict[str, Any]:
     """
     Generate DPO (Direct Preference Optimisation) data.
-    
+
     Creates chosen (better) and rejected (worse) response pairs.
-    
+
     Returns:
         Dict with: prompt, chosen, rejected, ratings
     """
     context = json.loads(synthesized_context) if isinstance(synthesized_context, str) else synthesized_context
-    
+
     # Chosen response: accurate, detailed, well-structured
     summary = context.get("summary", "Detailed explanation based on authoritative sources.")
     key_concepts = context.get("key_concepts", [])
-    
+
     chosen = f"""{summary}
 
 Key points to understand:
 {chr(10).join('• ' + str(k) for k in key_concepts) if key_concepts else '• Core concepts from the domain.'}
 
 This explanation is based on established knowledge in {topic}."""
-    
+
     # Rejected response: vague, potentially inaccurate, unhelpful
     rejected = f"""I'm not entirely sure about this topic. It's related to {topic} somehow, but I don't have specific information. Maybe try looking it up elsewhere?"""
-    
+
     return {
         "system_prompt": f"You are an expert in {topic}.",
         "prompt": question,
@@ -756,12 +756,12 @@ async def generate_qa_data(
 ) -> Dict[str, Any]:
     """
     Generate QA (Question-Answer) data.
-    
+
     Returns:
         Dict with: question, answer, context, reasoning
     """
     context = json.loads(synthesized_context) if isinstance(synthesized_context, str) else synthesized_context
-    
+
     return {
         "question": question,
         "answer": context.get("summary", ground_truth_context[:500]),
@@ -792,24 +792,24 @@ async def generate_training_data(
 ) -> Dict[str, Any]:
     """
     Generate training data based on type.
-    
+
     Args:
         training_type: Type of training data to generate
         question_data: Dict with question, topic, sub_topic, context fields
         code_executor: Optional code executor for verification
-        
+
     Returns:
         Generated training data dict
     """
     generator_func = GENERATION_FUNCTIONS.get(training_type)
-    
+
     if not generator_func:
         raise ValueError(f"No generator for training type: {training_type}")
-    
+
     # Check if function accepts code_executor
     import inspect
     sig = inspect.signature(generator_func)
-    
+
     if 'code_executor' in sig.parameters:
         return await generator_func(
             question=question_data['question'],
@@ -843,32 +843,32 @@ description: "Reviews and validates synthetic training data for quality and corr
 model: "gemini-2.5-flash"  # Use gemini-3-pro-preview for complex validation
 instruction: |
   You are a quality assurance agent that validates synthetic training data.
-  
+
   Your responsibilities:
   1. Verify factual accuracy against ground truth context
   2. Check reasoning chains for logical consistency
   3. Test code examples for correctness
   4. Ensure responses are well-formatted
   5. Validate domain-specific knowledge
-  
+
   Scoring criteria (0-1 scale):
   - Factual accuracy: Is the information correct?
   - Completeness: Does it fully answer the question?
   - Clarity: Is it well-explained and understandable?
   - Format compliance: Does it match training type requirements?
-  
+
   For code:
   - Must execute without errors
   - Must produce correct output
   - Must handle edge cases
-  
+
   For reasoning:
   - Steps must be logically sound
   - Conclusion must follow from premises
   - No logical fallacies
-  
+
   Provide detailed feedback for any issues found.
-  
+
   Status options:
   - "approved": High quality, ready to use
   - "needs_revision": Has issues but salvageable
@@ -935,7 +935,7 @@ async def review_sft_data(
 ) -> Dict[str, Any]:
     """
     Review SFT training data.
-    
+
     Returns:
         Review results with scores and status
     """
@@ -945,33 +945,33 @@ async def review_sft_data(
         "clarity": 0.0,
         "format_compliance": 0.0
     }
-    
+
     # Check format compliance
     required_fields = ["instruction", "response"]
     has_all_fields = all(field in data and data[field] for field in required_fields)
     scores["format_compliance"] = 1.0 if has_all_fields else 0.0
-    
+
     # Check response quality
     response = data.get("response", "")
     response_length = len(response)
-    
+
     # Completeness: based on response length
     scores["completeness"] = min(1.0, response_length / 200)
-    
+
     # Clarity: check for structure
     has_structure = any(marker in response for marker in [".", "\n", ":", "•", "-"])
     scores["clarity"] = 0.8 if has_structure else 0.5
-    
+
     # Factual accuracy: would compare against ground truth
     # Simplified: assume reasonable if context was used
     if ground_truth and any(word in response.lower() for word in ground_truth.lower().split()[:10]):
         scores["factual_accuracy"] = 0.85
     else:
         scores["factual_accuracy"] = 0.6
-    
+
     # Calculate overall score
     overall_score = sum(scores.values()) / len(scores)
-    
+
     # Determine status
     if overall_score >= 0.8:
         status = "approved"
@@ -979,7 +979,7 @@ async def review_sft_data(
         status = "needs_revision"
     else:
         status = "rejected"
-    
+
     return {
         "quality_score": overall_score,
         "review_status": status,
@@ -994,7 +994,7 @@ async def review_grpo_data(
 ) -> Dict[str, Any]:
     """
     Review GRPO data including code execution verification.
-    
+
     Returns:
         Review results with verification status
     """
@@ -1004,18 +1004,18 @@ async def review_grpo_data(
         "answer_verification": 0.0,
         "format_compliance": 0.0
     }
-    
+
     # Check format
     required_fields = ["prompt", "reasoning", "predicted_answer"]
     has_all_fields = all(field in data and data[field] for field in required_fields)
     scores["format_compliance"] = 1.0 if has_all_fields else 0.0
-    
+
     # Check reasoning quality
     reasoning = data.get("reasoning", "")
     has_steps = "step" in reasoning.lower() or any(f"Step {i}" in reasoning for i in range(1, 6))
     has_conclusion = any(word in reasoning.lower() for word in ["therefore", "thus", "answer", "conclusion"])
     scores["reasoning_quality"] = 0.9 if (has_steps and has_conclusion) else (0.6 if has_steps else 0.4)
-    
+
     # Check code (if present)
     code = data.get("code", "")
     if code:
@@ -1026,20 +1026,20 @@ async def review_grpo_data(
         scores["code_correctness"] = 0.9 if (has_function and has_return) else 0.5
     else:
         scores["code_correctness"] = 0.5  # No code to test
-    
+
     # Verify answer correctness
     is_correct = data.get("is_correct", False)
     scores["answer_verification"] = 1.0 if is_correct else 0.3
-    
+
     overall_score = sum(scores.values()) / len(scores)
-    
+
     if overall_score >= 0.8:
         status = "approved"
     elif overall_score >= 0.6:
         status = "needs_revision"
     else:
         status = "rejected"
-    
+
     return {
         "quality_score": overall_score,
         "review_status": status,
@@ -1051,7 +1051,7 @@ async def review_grpo_data(
 async def review_dpo_data(data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Review DPO preference pair data.
-    
+
     Returns:
         Review results with preference validation
     """
@@ -1061,36 +1061,36 @@ async def review_dpo_data(data: Dict[str, Any]) -> Dict[str, Any]:
         "preference_clarity": 0.0,
         "format_compliance": 0.0
     }
-    
+
     # Check format
     required_fields = ["prompt", "chosen", "rejected"]
     has_all_fields = all(field in data and data[field] for field in required_fields)
     scores["format_compliance"] = 1.0 if has_all_fields else 0.0
-    
+
     chosen = data.get("chosen", "")
     rejected = data.get("rejected", "")
-    
+
     # Chosen should be substantially better
     scores["chosen_quality"] = min(1.0, len(chosen) / 200)
     scores["rejected_quality"] = 0.8 if len(rejected) > 20 else 0.4
-    
+
     # Preference should be clear (chosen much longer/better structured)
     length_ratio = len(chosen) / max(len(rejected), 1)
     scores["preference_clarity"] = min(1.0, length_ratio / 3)
-    
+
     # Validate: chosen != rejected
     if chosen.strip() == rejected.strip():
         scores["preference_clarity"] = 0.0
-    
+
     overall_score = sum(scores.values()) / len(scores)
-    
+
     if overall_score >= 0.75:
         status = "approved"
     elif overall_score >= 0.5:
         status = "needs_revision"
     else:
         status = "rejected"
-    
+
     return {
         "quality_score": overall_score,
         "review_status": status,
@@ -1176,13 +1176,13 @@ async def run_synthetic_data_pipeline(
 ) -> Dict[str, Any]:
     """
     Run the complete synthetic data generation pipeline.
-    
+
     Args:
         topic: Main topic (e.g., "chemistry")
         sub_topic: Sub-topic (e.g., "organic chemistry")
         training_type: Type of training data to generate
         num_questions: Number of questions to generate
-        
+
     Returns:
         Pipeline results summary
     """
@@ -1192,7 +1192,7 @@ async def run_synthetic_data_pipeline(
     print(f"   Topic: {topic} / {sub_topic}")
     print(f"   Training Type: {training_type.value}")
     print(f"   Target: {num_questions} examples\n")
-    
+
     stats = {
         "questions_generated": 0,
         "research_completed": 0,
@@ -1200,12 +1200,12 @@ async def run_synthetic_data_pipeline(
         "approved": 0,
         "rejected": 0
     }
-    
+
     # ────────────────────────────────────────────────────────────
     # Phase 1: Question Generation
     # ────────────────────────────────────────────────────────────
     print("📝 Phase 1: Generating questions...")
-    
+
     # In production, this would call the question agent
     sample_questions = [
         f"What is the fundamental concept of {sub_topic}?",
@@ -1214,7 +1214,7 @@ async def run_synthetic_data_pipeline(
         f"Explain an important application of {sub_topic}.",
         f"What are common misconceptions about {sub_topic}?",
     ][:num_questions]
-    
+
     result = database_tools.add_questions_to_database(
         questions=sample_questions,
         topic=topic,
@@ -1223,14 +1223,14 @@ async def run_synthetic_data_pipeline(
     )
     stats["questions_generated"] = result.get("count", 0)
     print(f"   ✅ Generated {stats['questions_generated']} questions\n")
-    
+
     # ────────────────────────────────────────────────────────────
     # Phase 2: Research
     # ────────────────────────────────────────────────────────────
     print("🔍 Phase 2: Conducting research...")
-    
+
     pending_questions = database_tools.get_pending_questions(topic, sub_topic)
-    
+
     for i, q in enumerate(pending_questions):
         print(f"   [{i+1}/{len(pending_questions)}] Researching: {q['question'][:40]}...")
         await research_question(
@@ -1240,14 +1240,14 @@ async def run_synthetic_data_pipeline(
             sub_topic=sub_topic
         )
         stats["research_completed"] += 1
-    
+
     print(f"   ✅ Research complete for {stats['research_completed']} questions\n")
-    
+
     # ────────────────────────────────────────────────────────────
     # Phase 3: Generation
     # ────────────────────────────────────────────────────────────
     print("⚙️  Phase 3: Generating training data...")
-    
+
     # Get researched questions (would query with status='researched')
     for i, q in enumerate(pending_questions):
         # Build question data from DB (simplified)
@@ -1258,13 +1258,13 @@ async def run_synthetic_data_pipeline(
             'ground_truth_context': "Sample ground truth context from research...",
             'synthesized_context': '{"summary": "Synthesised information..."}'
         }
-        
+
         # Generate training data
         training_data = await generate_training_data(
             training_type=training_type,
             question_data=question_data
         )
-        
+
         # Save to database
         database_tools.add_synthetic_data(
             training_type=training_type.value,
@@ -1272,20 +1272,20 @@ async def run_synthetic_data_pipeline(
         )
         stats["data_generated"] += 1
         print(f"   [{i+1}/{len(pending_questions)}] Generated")
-    
+
     print(f"   ✅ Generated {stats['data_generated']} training examples\n")
-    
+
     # ────────────────────────────────────────────────────────────
     # Phase 4: Review
     # ────────────────────────────────────────────────────────────
     print("✓  Phase 4: Reviewing quality...")
-    
+
     # Would retrieve generated data and review each item
     # For now, assume all pass
     stats["approved"] = stats["data_generated"]
-    
+
     print(f"   ✅ Review complete: {stats['approved']} approved\n")
-    
+
     # ────────────────────────────────────────────────────────────
     # Summary
     # ────────────────────────────────────────────────────────────
@@ -1299,7 +1299,7 @@ async def run_synthetic_data_pipeline(
     print(f"   Rejected:            {stats['rejected']}")
     print(f"   Output table:        synthetic_data_{training_type.value}")
     print()
-    
+
     return stats
 
 
@@ -1329,16 +1329,16 @@ async def main():
     print("\n" + "="*60)
     print("  Synthetic Data Generation Agent")
     print("="*60 + "\n")
-    
+
     print("What would you like to generate?\n")
     print("  1. Chemistry SFT data")
     print("  2. Mathematics GRPO data")
     print("  3. Coding DPO data")
     print("  4. Custom configuration")
     print("  5. Exit")
-    
+
     choice = input("\nEnter choice (1-5): ").strip()
-    
+
     if choice == "1":
         await run_synthetic_data_pipeline(
             topic="chemistry",
@@ -1363,13 +1363,13 @@ async def main():
     elif choice == "4":
         topic = input("Topic: ").strip()
         sub_topic = input("Sub-topic: ").strip()
-        
+
         print("\nTraining types: sft, dpo, grpo, ppo, rlhf, kto, orpo, chat, qa")
         training_type_str = input("Training type: ").strip().lower()
-        
+
         num = input("Number of examples (default 10): ").strip()
         num = int(num) if num else 10
-        
+
         await run_synthetic_data_pipeline(
             topic=topic,
             sub_topic=sub_topic,
@@ -1410,14 +1410,14 @@ from tools.database_tools import DatabaseTools
 def test_add_questions():
     """Test adding questions to database."""
     db_tools = DatabaseTools()
-    
+
     result = db_tools.add_questions_to_database(
         questions=["Test question 1", "Test question 2"],
         topic="test",
         sub_topic="testing",
         training_type="sft"
     )
-    
+
     assert result["status"] == "success"
     assert result["count"] == 2
     assert len(result["question_ids"]) == 2
@@ -1426,17 +1426,17 @@ def test_add_questions():
 def test_get_pending_questions():
     """Test retrieving pending questions."""
     db_tools = DatabaseTools()
-    
+
     # Add a question first
     db_tools.add_questions_to_database(
         questions=["Pending test question"],
         topic="test_pending",
         sub_topic="testing"
     )
-    
+
     # Retrieve pending
     pending = db_tools.get_pending_questions(topic="test_pending")
-    
+
     assert len(pending) > 0
     assert pending[0]["status"] == "pending"
 
@@ -1444,7 +1444,7 @@ def test_get_pending_questions():
 def test_add_synthetic_data():
     """Test adding synthetic data."""
     db_tools = DatabaseTools()
-    
+
     result = db_tools.add_synthetic_data(
         training_type="sft",
         data={
@@ -1454,7 +1454,7 @@ def test_add_synthetic_data():
             "sub_topic": "testing"
         }
     )
-    
+
     assert result["status"] == "success"
     assert "id" in result
 ```
@@ -1481,7 +1481,7 @@ async def test_sft_pipeline():
         training_type=TrainingType.SFT,
         num_questions=2
     )
-    
+
     assert result["questions_generated"] == 2
     assert result["data_generated"] == 2
 
@@ -1495,7 +1495,7 @@ async def test_grpo_pipeline():
         training_type=TrainingType.GRPO,
         num_questions=2
     )
-    
+
     assert result["questions_generated"] == 2
     assert result["data_generated"] == 2
 ```

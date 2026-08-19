@@ -1,8 +1,8 @@
 # Implementation Strategy: Critical Fixes & Improvements
 
-**Based on**: Comprehensive Project Review (December 14, 2025) + Revised Architecture  
-**Status**: Planning Phase  
-**Target Timeline**: 3-4 weeks to production readiness  
+**Based on**: Comprehensive Project Review (December 14, 2025) + Revised Architecture
+**Status**: Planning Phase
+**Target Timeline**: 3-4 weeks to production readiness
 **Last Updated**: December 14, 2025 (Revised with new architecture)
 
 ---
@@ -24,8 +24,8 @@ This document outlines the implementation strategy for addressing the 6 critical
 
 ## Phase 1: Critical Fixes (Week 1)
 
-**Goal**: Make system production-viable  
-**Effort**: ~10 hours  
+**Goal**: Make system production-viable
+**Effort**: ~10 hours
 **Priority**: IMMEDIATE
 
 ### 1.1 Implement Real Research Agent ⚠️ BLOCKER
@@ -139,21 +139,21 @@ This document outlines the implementation strategy for addressing the 6 critical
        tools=[DatabaseTools()],
        model=Gemini("gemini-2.5-flash")
    )
-   
+
    # research_db_sub_agent/agent.py
    root_agent = LlmAgent(
        name="research_db_sub_agent",
        tools=[DatabaseTools()],
        model=Gemini("gemini-2.5-flash")
    )
-   
+
    # generation_db_sub_agent/agent.py
    root_agent = LlmAgent(
        name="generation_db_sub_agent",
        tools=[DatabaseTools()],
        model=Gemini("gemini-2.5-flash")
    )
-   
+
    # review_db_sub_agent/agent.py
    root_agent = LlmAgent(
        name="review_db_sub_agent",
@@ -176,17 +176,17 @@ This document outlines the implementation strategy for addressing the 6 critical
        tools=[google_search],  # Built-in tool only
        sub_agents=[research_db_sub_agent]  # Writes via sub-agent
    )
-   
+
    # Generation Agent
    code_execution_agent = LlmAgent(
        code_executor=BuiltInCodeExecutor()  # Built-in tool only
    )
-   
+
    generation_agent = LlmAgent(
        tools=[DatabaseTools()],  # Read-only access
        sub_agents=[generation_db_sub_agent, code_execution_agent]
    )
-   
+
    # Reviewer Agent
    reviewer_agent = LlmAgent(
        tools=[DatabaseTools()],  # Read-only access
@@ -221,7 +221,7 @@ This document outlines the implementation strategy for addressing the 6 critical
 
 ## Phase 2: Reliability & Performance (Week 2)
 
-**Goal**: Improve throughput and resilience  
+**Goal**: Improve throughput and resilience
 **Effort**: ~20 hours
 
 ### 2.1 Refactor Pipeline to Stage-by-Stage Processing 🔄 ARCHITECTURE
@@ -246,16 +246,16 @@ This document outlines the implementation strategy for addressing the 6 critical
    async def generate_synthetic_data_pipeline(...):
        # Stage 1: Generate and store questions
        question_ids = await stage_1_generate_questions(...)
-       
+
        # Stage 2: Research all (parallel)
        await stage_2_research_questions(question_ids, ...)
-       
+
        # Stage 3: Generate all (parallel)
        await stage_3_generate_data(question_ids, ...)
-       
+
        # Stage 4: Review all (parallel)
        await stage_4_review_data(question_ids, ...)
-       
+
        # Stage 5: Final storage
        await stage_5_final_storage(question_ids, ...)
    ```
@@ -352,7 +352,7 @@ This document outlines the implementation strategy for addressing the 6 critical
 2. **Add retry decorators**:
    ```python
    from tenacity import retry, stop_after_attempt, wait_exponential
-   
+
    @retry(
        stop=stop_after_attempt(3),
        wait=wait_exponential(multiplier=1, min=4, max=10)
@@ -382,7 +382,7 @@ This document outlines the implementation strategy for addressing the 6 critical
 
 ### 2.3 Fast-Path Validation ⚡ COST OPTIMIZATION
 
-**Target**: Reduce review costs by 50%  
+**Target**: Reduce review costs by 50%
 **Approach**: Pre-filter low-quality data before expensive review
 
 **Implementation Steps**:
@@ -396,7 +396,7 @@ This document outlines the implementation strategy for addressing the 6 critical
 
 ### 2.4 Agent Config Refinement 📝 QUALITY
 
-**Target**: Improve agent decision-making  
+**Target**: Improve agent decision-making
 **Approach**: Add decision trees, quality rubrics, error handling guidance
 
 **Implementation Steps**:
@@ -411,7 +411,7 @@ This document outlines the implementation strategy for addressing the 6 critical
 
 ## Phase 3: Production Readiness (Weeks 3-4)
 
-**Goal**: Enterprise-ready deployment  
+**Goal**: Enterprise-ready deployment
 **Effort**: ~29 hours
 
 ### 3.1 Workflow-Driven Architecture
@@ -505,6 +505,6 @@ Week 2 (Reliability):
 
 ---
 
-**Document Status**: Draft  
-**Last Updated**: 2025-12-14  
+**Document Status**: Draft
+**Last Updated**: 2025-12-14
 **Owner**: Development Team

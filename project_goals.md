@@ -352,12 +352,13 @@ dataset = load_dataset("codeparrot/github-code", split="train")
 
 # Upload synthetic data
 from huggingface_hub import HfApi
+
 api = HfApi()
 api.upload_file(
     path_or_fileobj="synthetic_chemistry_sft.jsonl",
     path_in_repo="data/train.jsonl",
     repo_id="username/synthetic-chemistry-sft",
-    repo_type="dataset"
+    repo_type="dataset",
 )
 ```
 
@@ -490,7 +491,7 @@ api.upload_file(
 def verify_license(source_url, content):
     """
     Detect and verify license for content.
-    
+
     Returns:
         {
             "license": "CC-BY-4.0",
@@ -702,7 +703,7 @@ Output stored in DB:
   },
   context_sources: [
     {
-      "url": "...", 
+      "url": "...",
       "title": "...",
       "author": "...",
       "date_accessed": "2025-01-15",
@@ -767,7 +768,7 @@ The **Research Agent** is crucial because it provides the factual foundation for
    - Maintains citations and sources
    - **Tracks licenses** (CC-BY, CC-BY-SA, public domain, copyright, etc.)
    - Records source metadata (URL, title, author, date accessed)
-   
+
 2. **Synthesized** (cleaned): LLM-structured version
    - Organized into definitions, concepts, examples
    - Easier for Generation Agent to work with

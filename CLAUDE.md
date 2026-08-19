@@ -10,49 +10,42 @@ The system takes user requirements (e.g., "Generate 100 chemistry SFT examples")
 
 ## Development Commands
 
+The project is managed with [uv](https://docs.astral.sh/uv/); a `Makefile` wraps the common tasks.
+
 ### Running the Application
 
 ```bash
-# Run the main demo (generates chemistry examples)
-python main.py
+uv sync --all-groups        # install dependencies + dev tools
+uv run python main.py       # run the main demo (generates chemistry examples)
+uv run adk web src          # explore agents in the ADK web UI
 ```
 
 ### Database Management
 
 ```bash
-# Initialize database tables
-python utils/create_database.py
-
-# Inspect database contents
-python utils/inspect_database.py
-
-# Clear all data (caution: destructive)
-python utils/clear_database.py
-
-# Inspect database structure and contents
-python utils/db_inspector.py
+uv run python utils/create_database.py            # initialize tables (also happens automatically)
+uv run python utils/inspect_database.py           # inspect database contents
+uv run python utils/clear_database.py --confirm   # clear all data (caution: destructive)
+uv run python utils/db_inspector.py               # inspect structure and contents
 ```
 
-### Testing
+### Testing and Linting
 
 ```bash
-# Run individual test modules
-python tests/test_end_to_end.py
-python tests/test_orchestrator_workflows.py
-python tests/test_research_agent.py
-python tests/test_generation_agent.py
-python tests/test_reviewer_agent.py
-
-# Run specific workflow test
-python tests/test_workflow_direct.py
+uv run pytest               # offline unit tests (this is what CI runs)
+GOOGLE_API_KEY=... uv run pytest   # also collects live agent integration tests
+uv run ruff check .         # lint
+uv run ruff format .        # format
+uv run pre-commit install   # optional: lint on every commit
 ```
+
+The offline/integration split is controlled by `tests/conftest.py`: modules listed in `_INTEGRATION_TEST_FILES` are only collected when `GOOGLE_API_KEY` is set. All tests run against a throwaway database (never `db/synthetic_data.db`).
 
 ### Environment Setup
 
-The project requires Python 3.13+ and uses a virtual environment in `.venv/`. Environment variables are stored in `.env` (not tracked in git).
-
-Required environment variable:
-- `GOOGLE_API_KEY` - Google AI API key for Gemini models
+Requires Python 3.13+ (uv installs it automatically per `.python-version`). Environment variables live in `.env` (git-ignored, loaded via python-dotenv; see `.env.example`):
+- `GOOGLE_API_KEY` - Google AI API key for Gemini models (required for live runs)
+- `DATABASE_URL` - optional SQLAlchemy URL overriding the default SQLite database
 
 ## Architecture
 
@@ -76,11 +69,13 @@ Each agent is configured via YAML files in its respective directory:
 - `src/orchestrator/{agent_name}/{agent_name}.yaml` - Agent-specific configs
 
 All agents use:
-- **Model**: Gemini 3-pro-preview
+- **Model**: Gemini, configured per agent YAML (mostly `gemini-2.5-flash`, some `gemini-3-pro-preview`)
 - **Framework**: Google ADK (`google.adk.agents.LlmAgent`)
 - **HTTP Retry**: Exponential backoff (5 attempts, base delay 7s)
 
 Configuration is loaded via `utils/config.py:load_config()`.
+
+Workflow code invokes agents through `src/orchestrator/runtime.py:run_agent()`, which wraps each agent in a cached ADK `InMemoryRunner` and executes one prompt per fresh session.
 
 ### Key Workflows
 
@@ -102,7 +97,8 @@ Supporting workflows:
 
 **ORM**: SQLAlchemy 2.0
 **Backend**: SQLite (default, extensible)
-**Location**: `db/synthetic_data.db`
+**Location**: `db/synthetic_data.db`, overridable via the `DATABASE_URL` environment variable
+**Central config**: `utils/db.py` (`get_database_url()`, `create_db_engine()`); engines auto-create missing tables
 **Schemas**: `schema/synthetic_data.py`
 
 Tables:
@@ -153,7 +149,7 @@ Currently approved:
 - `DatabaseTools` - Custom tool (implements BaseTool interface)
 
 **NEVER** import or use:
-- Custom `web_tools` module (removed in recent commits)
+- Custom web-scraping tools (the old `web_tools`/`data_tools` modules were deleted; research goes through `google_search`)
 - External tool libraries that aren't part of ADK
 
 Check git history for context on AFC compatibility fixes.
@@ -183,7 +179,7 @@ All workflows return:
     "progress": PipelineProgress.get_summary(),
     "results": [{"question_id": ..., "status": ..., "quality_score": ...}],
     "summary": {"total_questions": ..., "success_rate": ...},
-    "errors": [...]
+    "errors": [...],
 }
 ```
 
@@ -210,22 +206,22 @@ These enforce agent output schemas via ADK's structured output feature.
 
 ## Recent Changes (Context from Git)
 
-Recent commits focus on **AFC compatibility**:
-- Removed custom `web_tools` in favor of built-in `google_search`
-- Cleaned up tool imports from orchestrator and reviewer agents
-- Updated research agent instructions to emphasize `google_search` usage
+The project was modernized in one pass (see the `claude/project-modernization-*` branch):
+- Tooling: uv-managed environment, ruff lint+format, pytest (+pytest-asyncio), pre-commit, GitHub Actions CI
+- google-adk upgraded to 2.x; broken `agent.invoke()` calls replaced with a proper runner (`src/orchestrator/runtime.py`)
+- Pipeline fixes: stage 1 stores questions again; stage 5 filters payloads to real table columns before insert
+- Database: central `utils/db.py`, `DATABASE_URL` env support, auto `create_all`, timezone-aware timestamps
+- Removed dead `web_tools`/`data_tools` modules and their orphaned dependencies (requests, bs4, numpy, pandas)
 
 When adding tools, ensure they follow ADK's `BaseTool` interface and don't break AFC compatibility.
 
 ## Testing Patterns
 
-Tests use async/await and demonstrate:
-- End-to-end pipeline execution (`test_end_to_end.py`)
-- Individual agent workflows (`test_{agent}_agent.py`)
-- Database operations (`test_database_updates.py`)
-- Integration tests (`test_research_integration.py`)
+Tests run under pytest with `asyncio_mode = "auto"` (async test functions need no decorator) and `pythonpath = ["."]` (imports work from the repo root). Two tiers:
+- **Offline unit tests** (always run, used in CI): `test_database_tools.py`, `test_schema_registry.py`, `test_utils.py`, `test_generation_review_offline.py`, `test_pipeline_stages.py`, plus older offline scripts
+- **Live integration tests** (need `GOOGLE_API_KEY`, listed in `tests/conftest.py`): end-to-end pipeline and agent tests
 
-Run tests individually, not as a suite (no pytest/unittest runner configured).
+`tests/conftest.py` points `DATABASE_URL` at a temporary database for the whole test process.
 
 ## File Organization
 
@@ -237,19 +233,20 @@ src/orchestrator/          # Agent definitions and workflows
   │   ├── agent.py         # Agent definition
   │   ├── workflows.py     # Agent workflows (if applicable)
   │   └── {name}.yaml      # Agent configuration
+  ├── runtime.py           # run_agent() helper (ADK InMemoryRunner wrapper)
 schema/                    # SQLAlchemy schemas
 tools/                     # Agent tools (DatabaseTools, etc.)
 models/                    # Pydantic models for structured outputs
-utils/                     # Config loading, database utilities
-tests/                     # Test modules
-db/                        # SQLite database files
+utils/                     # Config loading, central DB config (db.py), resilience, DB scripts
+tests/                     # Offline unit tests + live integration tests (see conftest.py)
+db/                        # SQLite database files (git-ignored)
 ```
 
 ## Key Constraints
 
-1. **Python 3.13+** - Required for dependencies
-2. **Google ADK framework** - All agents inherit from `LlmAgent`
-3. **Gemini models only** - Currently uses gemini-3-pro-preview
+1. **Python 3.13+** - Required for dependencies (uv installs it per `.python-version`)
+2. **Google ADK framework (2.x)** - All agents inherit from `LlmAgent`
+3. **Gemini models only** - Configured per agent YAML (gemini-2.5-flash / gemini-3-pro-preview)
 4. **SQLite default** - Database can be swapped via `DATABASE_URL`
 5. **AFC compatibility** - Only use approved tools and patterns
 6. **No direct file I/O in agents** - Use DatabaseTools for persistence

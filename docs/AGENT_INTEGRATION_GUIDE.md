@@ -51,13 +51,13 @@ from src.orchestrator.workflows import (
 
 class GenerateSyntheticDataTool(BaseTool):
     """Tool wrapper for generate_synthetic_data workflow."""
-    
+
     def __init__(self):
         super().__init__(
             name="generate_synthetic_data",
             description="Generate synthetic training data from questions through complete pipeline"
         )
-    
+
     async def __call__(
         self,
         questions: List[str],
@@ -103,15 +103,15 @@ Update `orchestrator.yaml` to instruct the agent to use the workflow tool:
 ```yaml
 instruction: |
   ...
-  
+
   ## Using Workflow Tools
-  
+
   When a user requests synthetic data generation:
-  
+
   1. Gather requirements (domain, topic, training type, volume)
   2. Use the `generate_synthetic_data` tool with the collected parameters
   3. Report the results to the user
-  
+
   DO NOT simulate the workflow - use the actual tool!
 ```
 
