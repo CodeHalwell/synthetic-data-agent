@@ -15,8 +15,8 @@ from utils.config import load_config, retry_config
 config = load_config(Path(__file__).parent / "code_execution.yaml")
 
 from google.adk.agents import LlmAgent
-from google.adk.models.google_llm import Gemini
 from google.adk.code_executors import BuiltInCodeExecutor
+from google.adk.models.google_llm import Gemini
 
 # Initialize code executor (built-in tool)
 code_executor = BuiltInCodeExecutor()

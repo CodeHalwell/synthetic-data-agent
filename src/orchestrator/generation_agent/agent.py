@@ -17,8 +17,9 @@ from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
 
 from tools.database_tools import DatabaseTools
-from .generation_db_sub_agent import root_agent as generation_db_sub_agent
+
 from .code_execution_sub_agent import root_agent as code_execution_agent
+from .generation_db_sub_agent import root_agent as generation_db_sub_agent
 
 # Initialize tools
 # DatabaseTools for read-only access (querying questions, etc.)
@@ -33,5 +34,8 @@ root_agent = LlmAgent(
     instruction=config["instruction"],
     model=Gemini(model=config["model"], retry_config=retry_config()),
     tools=[database_tools],  # Custom tool (read-only database access)
-    sub_agents=[generation_db_sub_agent, code_execution_agent],  # Sub-agents for writes and code execution
+    sub_agents=[
+        generation_db_sub_agent,
+        code_execution_agent,
+    ],  # Sub-agents for writes and code execution
 )

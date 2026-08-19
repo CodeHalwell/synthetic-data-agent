@@ -23,4 +23,3 @@ root_agent = LlmAgent(
     sub_agents=[research_db_sub_agent],  # Use research_db_sub_agent for database writes
     tools=[google_search],  # Only google_search (built-in tool)
 )
-
