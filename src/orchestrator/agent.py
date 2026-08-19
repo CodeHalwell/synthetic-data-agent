@@ -8,21 +8,19 @@ config = load_config(Path(__file__).parent / "orchestrator.yaml")
 
 from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
-from google.adk.apps.app import App, ResumabilityConfig
-
-from .planning_agent import root_agent as planning_agent
-from .question_agent import root_agent as question_agent
-from .research_agent import root_agent as research_agent
-from .generation_agent import root_agent as generation_agent
-from .reviewer_agent import root_agent as reviewer_agent
-from .database_agent import root_agent as database_agent
 
 # Import tools for orchestrator
 from tools.database_tools import DatabaseTools
 
-# Initialize tools
-# Note: Only database_tools needed at orchestrator level
-# web_tools is available through research_agent sub-agent
+from .database_agent import root_agent as database_agent
+from .generation_agent import root_agent as generation_agent
+from .planning_agent import root_agent as planning_agent
+from .question_agent import root_agent as question_agent
+from .research_agent import root_agent as research_agent
+from .reviewer_agent import root_agent as reviewer_agent
+
+# Only database_tools is needed at orchestrator level;
+# web search happens inside research_agent via the built-in google_search tool.
 database_tools = DatabaseTools()
 
 root_agent = LlmAgent(
@@ -36,8 +34,7 @@ root_agent = LlmAgent(
         research_agent,
         generation_agent,
         reviewer_agent,
-        database_agent
+        database_agent,
     ],
-    tools=[database_tools]  # Removed web_tools - available through research_agent
+    tools=[database_tools],
 )
-

@@ -12,7 +12,6 @@ config = load_config(Path(__file__).parent / "database.yaml")
 
 from google.adk.agents import LlmAgent
 from google.adk.models.google_llm import Gemini
-from google.adk.apps.app import App, ResumabilityConfig
 
 from tools.database_tools import DatabaseTools
 

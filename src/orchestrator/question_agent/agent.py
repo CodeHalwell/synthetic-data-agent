@@ -2,8 +2,8 @@ import sys
 from pathlib import Path
 
 sys.path.append(str(Path(__file__).parent.parent.parent.parent))
-from utils.config import load_config, retry_config
 from models.models import Questions
+from utils.config import load_config, retry_config
 
 config = load_config(Path(__file__).parent / "questions.yaml")
 
